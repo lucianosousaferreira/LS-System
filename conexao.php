@@ -1,13 +1,14 @@
 <?php
-// Conexão com o banco
-$host = getenv("localhost");
-$usuario = getenv("root");
-$senha = getenv("");
-$banco = getenv("oficina");
+$servername = getenv("DB_HOST") ?: "localhost";
+$username   = getenv("DB_USER") ?: "root";
+$password   = getenv("DB_PASSWORD") ?: "";
+$dbname     = getenv("DB_NAME") ?: "oficina";
 
-$conn = new mysqli($host, $usuario, $senha, $banco);
+// Conectar ao MySQL
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Verifica erro
 if ($conn->connect_error) {
-    die("Erro de conexão: " . $conn->connect_error);
+    die("Falha na conexão: " . $conn->connect_error);
 }
-
 ?>
