@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: sistema-oficina
+    name: LS-System
     env: docker
     plan: free
     dockerfilePath: ./Dockerfile
