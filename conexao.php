@@ -1,10 +1,10 @@
 <?php
 
-$host = getenv('DB_HOST');
-$usuario = getenv('DB_USER');
-$senha = getenv('DB_PASSWORD');
-$banco = getenv('DB_NAME');
-$porta = (int) getenv('DB_PORT');
+$host = 'trolley.proxy.rlwy.net';
+$usuario = 'root';
+$senha = 'TSqwfoZpKFxwBPqMsfuElImWOxAIflSB';
+$banco = 'oficina';
+$porta = '59498';
 
 $conexao = new mysqli($host, $usuario, $senha, $banco, $porta);
 
