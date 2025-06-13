@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: LS-System
+    name: LS-System1
     env: docker
     plan: free
     dockerfilePath: ./Dockerfile
