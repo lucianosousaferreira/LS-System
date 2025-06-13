@@ -1,14 +1,13 @@
 <?php
+$host = getenv('DB_HOST');
+$port = getenv('DB_PORT');
+$user = getenv('DB_USER');
+$password = getenv('DB_PASSWORD');
+$dbname = getenv('DB_NAME');
 
-$host = 'trolley.proxy.rlwy.net';
-$usuario = 'root';
-$senha = 'TSqwfoZpKFxwBPqMsfuElImWOxAIflSB';
-$banco = 'oficina';
-$porta = '59498';
+$conn = new mysqli($host, $user, $password, $dbname, (int)$port);
 
-$conexao = new mysqli($host, $usuario, $senha, $banco, $porta);
-
-if ($conexao->connect_error) {
-    die("Erro de conexão: " . $conexao->connect_error);
+if ($conn->connect_error) {
+    die("Erro de conexão: " . $conn->connect_error);
 }
 ?>
