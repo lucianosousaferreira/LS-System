@@ -1,23 +1,20 @@
+# Imagem base com Apache + PHP + extensões
 FROM php:8.2-apache
 
-# Copia os arquivos para o Apache
+# Instala extensões necessárias
+RUN docker-php-ext-install mysqli pdo pdo_mysql
+
+# Copia os arquivos para o diretório padrão do Apache
 COPY . /var/www/html/
 
-# Instala extensões do PHP (como mysqli)
-RUN docker-php-ext-install mysqli pdo pdo_mysql
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-# Ajusta permissões do Apache
+# Dá permissão de leitura/escrita
 RUN chown -R www-data:www-data /var/www/html
 
-# Ativa mod_rewrite (opcional, útil para URLs amigáveis)
+# Habilita o módulo reescrita (se necessário)
 RUN a2enmod rewrite
 
-# Reinicia Apache (boa prática, mas o container já faz isso)
-CMD ["apache2-foreground"]
-# Garantir que variáveis estejam disponíveis no PHP rodando no Apache
-ENV DB_HOST=${DB_HOST}
-ENV DB_USER=${DB_USER}
-ENV DB_PASSWORD=${DB_PASSWORD}
-ENV DB_NAME=${DB_NAME}
-ENV DB_PORT=${DB_PORT}
+# Define a porta esperada pelo Render
+EXPOSE 8080
 
+# Muda a porta padrão do Apache para 8080
+RUN sed -i 's/80/8080/g' /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf
