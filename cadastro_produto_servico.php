@@ -11,9 +11,9 @@ $tipo_selecionado = $_GET['tipo'] ?? '';
 // Cloudinary config
 \Cloudinary\Configuration\Configuration::instance([
     'cloud' => [
-        'cloud_name' => 'SEU_CLOUD_NAME',
-        'api_key'    => 'SUA_API_KEY',
-        'api_secret' => 'SUA_API_SECRET'
+        'cloud_name' => 'duzn9flso',
+        'api_key'    => '767215351625894',
+        'api_secret' => 'xAY1QegdsibW3uHd-dLkB6KvsPU'
     ],
     'url' => ['secure' => true]
 ]);
