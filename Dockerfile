@@ -1,27 +1,30 @@
-# Usa imagem oficial do PHP com Apache
+# Imagem base com Apache + PHP + extensões
 FROM php:8.2-apache
 
-# Instala dependências do sistema + Composer
+# Instala dependências de sistema e extensões PHP
 RUN apt-get update && apt-get install -y \
     unzip \
-    git \
     curl \
-    && docker-php-ext-install pdo pdo_mysql
+    git \
+    && docker-php-ext-install mysqli pdo pdo_mysql
 
-# Instala o Composer
+# Instala o Composer globalmente
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Define o diretório de trabalho dentro do container
-WORKDIR /var/www/html
+# Copia os arquivos do projeto para o diretório do Apache
+COPY . /var/www/html/
 
-# Copia os arquivos do projeto para o container
-COPY . .
+# Executa o Composer install (assume que composer.json está no projeto)
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader --working-dir=/var/www/html
 
-# Roda composer install ao construir a imagem
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
-
-# Permissões (opcional, ajuste conforme seu app)
+# Dá permissão de leitura/escrita ao Apache
 RUN chown -R www-data:www-data /var/www/html
 
-# Expõe a porta do Apache
-EXPOSE 80
+# Habilita o módulo rewrite (para URLs amigáveis, ex: Laravel, Slim etc)
+RUN a2enmod rewrite
+
+# Define a porta que o Render espera
+EXPOSE 8080
+
+# Altera Apache para escutar na porta 8080
+RUN sed -i 's/80/8080/g' /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf
