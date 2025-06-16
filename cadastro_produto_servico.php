@@ -75,6 +75,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 $conn->close();
+?>
 <?php include_once '_header.php'; ?>
 
 <div class="container" style="max-width: 600px; margin-top: 20px;">
@@ -219,5 +220,3 @@ $(function () {
 </script>
 
 <?php include_once '_footer.php'; ?>
-
-?>
