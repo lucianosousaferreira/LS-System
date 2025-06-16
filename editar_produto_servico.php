@@ -6,7 +6,7 @@ $titulo_pagina = "Editar Produto/Serviço";
 $mensagem = "";
 $tipo_mensagem = "info";
 
-// Buscar o ID
+// ID do item
 $id = $_GET['id'] ?? null;
 
 if (!$id) {
@@ -14,7 +14,7 @@ if (!$id) {
     exit;
 }
 
-// Buscar dados atuais
+// Buscar dados
 $sql = "SELECT * FROM tb_produtos_servicos WHERE id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $id);
@@ -28,7 +28,6 @@ if ($result->num_rows !== 1) {
 
 $item = $result->fetch_assoc();
 
-// Atualizar dados se enviado via POST
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $tipo = $_POST['tipo'];
     $descricao = $_POST['descricao'];
@@ -41,21 +40,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $imagem_nome = $item['imagem'];
 
     if ($tipo === "Produto" && isset($_FILES["imagem"]) && $_FILES["imagem"]["error"] == 0) {
-        $extensao = strtolower(pathinfo($_FILES["imagem"]["name"], PATHINFO_EXTENSION));
-        $permitidas = ['jpg', 'jpeg', 'png', 'gif'];
+        // Envio para Cloudinary
+        $cloudinary_url = 'https://api.cloudinary.com/v1_1/duzn9flso/image/upload';
+        $upload_preset = 'SEU_UPLOAD_PRESET';
+        $imagem_tmp = $_FILES["imagem"]["tmp_name"];
 
-        if (in_array($extensao, $permitidas)) {
-            $novo_nome = uniqid("produto_", true) . "." . $extensao;
-            $caminho = "imagens/" . $novo_nome;
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $cloudinary_url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        $postData = [
+            'file' => new CURLFile($imagem_tmp),
+            'upload_preset' => $upload_preset
+        ];
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+        $response = curl_exec($ch);
+        curl_close($ch);
 
-            if (move_uploaded_file($_FILES["imagem"]["tmp_name"], $caminho)) {
-                $imagem_nome = $novo_nome;
-            } else {
-                $mensagem = "Erro ao salvar nova imagem.";
-                $tipo_mensagem = "danger";
-            }
+        $result = json_decode($response, true);
+        if (isset($result['secure_url'])) {
+            $imagem_nome = $result['secure_url'];
         } else {
-            $mensagem = "Formato de imagem inválido.";
+            $mensagem = "Erro ao enviar imagem para o Cloudinary.";
             $tipo_mensagem = "danger";
         }
     }
@@ -70,7 +76,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if ($stmt->execute()) {
             $mensagem = "Alterações salvas com sucesso!";
             $tipo_mensagem = "success";
-            // Atualiza dados exibidos após salvar
             $item = array_merge($item, $_POST);
             $item['imagem'] = $imagem_nome;
         } else {
@@ -85,16 +90,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <div class="container" style="max-width: 600px; margin-top: 20px;">
   <div class="d-flex justify-content-between align-items-center mb-3">
-  <h4 class="text-primary fw-semibold mb-3">Editar Produto / Serviço</h4>
-  <a href="listar_produtos_servicos.php" class="btn btn-sm btn-outline-secondary">
+    <h4 class="text-primary fw-semibold mb-3">Editar Produto / Serviço</h4>
+    <a href="listar_produtos_servicos.php" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-card-list me-1"></i> Listar
     </a>
   </div>
 
   <?php if (!empty($mensagem)): ?>
-    <div class="alert alert-<?= $tipo_mensagem ?> py-2">
-      <?= htmlspecialchars($mensagem) ?>
-    </div>
+    <div class="alert alert-<?= $tipo_mensagem ?> py-2"><?= htmlspecialchars($mensagem) ?></div>
   <?php endif; ?>
 
   <form method="post" enctype="multipart/form-data" novalidate>
@@ -135,7 +138,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     <div class="mb-2" id="marca-campo">
       <label for="marca" class="form-label small">Marca</label>
-      <input type="text" class="form-control form-control-sm" name="marca" id="marca" value="<?= htmlspecialchars($item['marca'] ?? '') ?>" autocomplete="off" list="lista-marcas" onchange="verificaMarca(this.value)">
+      <input type="text" class="form-control form-control-sm" name="marca" id="marca" value="<?= htmlspecialchars($item['marca'] ?? '') ?>" list="lista-marcas" onchange="verificaMarca(this.value)">
       <datalist id="lista-marcas">
         <?php
         $res = $conn->query("SELECT nome FROM tb_marca ORDER BY nome");
@@ -148,7 +151,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     <div class="mb-2" id="fornecedor-campo">
       <label for="fornecedor" class="form-label small">Fornecedor</label>
-      <input type="text" class="form-control form-control-sm" name="fornecedor" id="fornecedor" value="<?= htmlspecialchars($item['fornecedor'] ?? '') ?>" autocomplete="off" list="lista-fornecedores" onchange="verificaFornecedor(this.value)">
+      <input type="text" class="form-control form-control-sm" name="fornecedor" id="fornecedor" value="<?= htmlspecialchars($item['fornecedor'] ?? '') ?>" list="lista-fornecedores" onchange="verificaFornecedor(this.value)">
       <datalist id="lista-fornecedores">
         <?php
         $resf = $conn->query("SELECT nome FROM tb_fornecedores ORDER BY nome");
@@ -163,7 +166,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <label for="imagem" class="form-label small">Imagem</label>
       <?php if (!empty($item['imagem'])): ?>
         <div class="mb-1">
-          <img src="imagens/<?= htmlspecialchars($item['imagem']) ?>" style="max-width: 100px;">
+          <img src="<?= htmlspecialchars($item['imagem']) ?>" style="max-width: 100px;">
         </div>
       <?php endif; ?>
       <input type="file" class="form-control form-control-sm" name="imagem" accept="image/*">
