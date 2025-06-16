@@ -58,12 +58,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     if (empty($mensagem)) {
-        $sql = "INSERT INTO tb_produtos_servicos 
-            (codigo_produto, tipo, descricao, referencia_produto, marca, fornecedor, preco, preco_compra, preco_venda, estoque, imagem)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
+        $sql = "INSERT INTO tb_produtos_servicos
+                (codigo_produto, tipo, descricao, referencia_produto, marca, fornecedor, preco_compra, preco_venda, estoque, imagem)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("sssssssddis", $codigo, $tipo, $descricao, $referencia_produto, $marca, $fornecedor, $preco, $preco_compra, $preco_venda, $estoque, $imagem_nome);
+        $stmt->bind_param("ssssssddis", $codigo, $tipo, $descricao, $referencia_produto, $marca, $fornecedor, $preco_compra, $preco_venda, $estoque, $imagem_nome);
 
         if ($stmt->execute()) {
             $mensagem = "Cadastro realizado com sucesso!";
