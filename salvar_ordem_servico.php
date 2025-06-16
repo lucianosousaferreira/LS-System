@@ -2,73 +2,96 @@
 include_once 'verifica_login.php';
 include_once 'conexao.php';
 
-// Dados principais da OS
-$numero_os = $_POST['numero_os'];
-$cliente_id = intval($_POST['cliente_id']);
-$veiculo_id = intval($_POST['veiculo_id']);
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+date_default_timezone_set('America/Sao_Paulo');
+
+// Dados principais
+$numero_os = $_POST['numero_os'] ?? '';
+$cliente_id = intval($_POST['cliente_id'] ?? 0);
+$veiculo_id = intval($_POST['veiculo_id'] ?? 0);
 $data_abertura = date('Y-m-d H:i:s');
+$data_entrada = $_POST['data_entrada'] ?? '';
+$data_saida = $_POST['data_saida'] ?: null;
+$status = $_POST['status'] ?? '';
+$relato_problemas = $_POST['relato_problemas'] ?? '';
+$laudo_servico = $_POST['laudo_servico'] ?? '';
+$desconto = floatval($_POST['desconto'] ?? 0);
+$forma_pagamento = $_POST['forma_pagamento'] ?? '';
+$tecnico_id = $_POST['tecnico_id'] ?: null;
 
-$data_entrada = $_POST['data_entrada'];
-$data_saida = !empty($_POST['data_saida']) ? $_POST['data_saida'] : null;
-$status = $_POST['status'];
-$relato_problemas = $_POST['relato_problemas'];
-$laudo_servico = $_POST['laudo_servico'];
-$forma_pagamento = $_POST['forma_pagamento'];
-$tecnico_id = !empty($_POST['tecnico_id']) ? intval($_POST['tecnico_id']) : null;
+// Itens da OS
+$descricao = $_POST['descricao'] ?? [];
+$tipo = $_POST['tipo'] ?? [];
+$preco = $_POST['preco'] ?? [];
+$quantidade = $_POST['quantidade'] ?? [];
 
-$desconto = isset($_POST['desconto']) ? floatval($_POST['desconto']) : 0.0;
-
-// Cálculo do total
-$total_bruto = 0;
-foreach ($_POST['preco'] as $i => $preco) {
-    $qtd = $_POST['quantidade'][$i];
-    $total_bruto += $preco * $qtd;
+// Validação
+if (empty($descricao) || count($descricao) !== count($tipo) || count($descricao) !== count($preco) || count($descricao) !== count($quantidade)) {
+    die("Erro: Nenhum item adicionado ou dados inconsistentes.");
 }
 
-$valor_desconto = ($total_bruto * $desconto) / 100;
-$total_final = $total_bruto - $valor_desconto;
-
-// Inserir ordem de serviço (com todos os campos necessários)
-$stmt = $conn->prepare("INSERT INTO tb_ordens_servico 
-    (numero_os, cliente_id, veiculo_id, data_abertura, total, data_entrada, data_saida, status, relato_problemas, laudo_servico, desconto, forma_pagamento, tecnico_id) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-
-$stmt->bind_param("siissdsssddsi", 
-    $numero_os, 
-    $cliente_id, 
-    $veiculo_id, 
-    $data_abertura, 
-    $total_final, 
-    $data_entrada, 
-    $data_saida, 
-    $status, 
-    $relato_problemas, 
-    $laudo_servico, 
-    $desconto, 
-    $forma_pagamento, 
-    $tecnico_id
-);
-
-$stmt->execute();
-$id_ordem = $stmt->insert_id;
-
-// Inserir itens da ordem
-foreach ($_POST['descricao'] as $i => $descricao) {
-    $tipo = $_POST['tipo'][$i];
-    $preco = floatval($_POST['preco'][$i]);
-    $quantidade = intval($_POST['quantidade'][$i]);
-    $subtotal = $preco * $quantidade;
-
-    $stmt_item = $conn->prepare("INSERT INTO tb_itens_os 
-        (ordem_servico_id, descricao, tipo, preco, quantidade, total) 
-        VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt_item->bind_param("issdii", $id_ordem, $descricao, $tipo, $preco, $quantidade, $subtotal);
-    $stmt_item->execute();
+// Cálculo do total final
+$total = 0;
+for ($i = 0; $i < count($descricao); $i++) {
+    $total += floatval($preco[$i]) * intval($quantidade[$i]);
 }
+$total_final = $total - ($total * ($desconto / 100));
 
-$conn->close();
+// Tratamento de campos nulos
+$data_saida = empty($data_saida) ? null : $data_saida;
+$tecnico_id = empty($tecnico_id) ? null : $tecnico_id;
 
-// Redireciona para visualização da ordem
-header("Location: visualizar_ordem.php?id=$id_ordem");
-exit;
+try {
+    $conn->begin_transaction();
+
+    // Inserção da ordem de serviço
+    $stmt = $conn->prepare("INSERT INTO tb_ordens_servico 
+        (numero_os, cliente_id, veiculo_id, data_abertura, total, data_entrada, data_saida, status, relato_problemas, laudo_servico, desconto, forma_pagamento, tecnico_id) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+    $stmt->bind_param(
+        "iiissdsssdsis",
+        $numero_os,
+        $cliente_id,
+        $veiculo_id,
+        $data_abertura,
+        $total_final,
+        $data_entrada,
+        $data_saida,
+        $status,
+        $relato_problemas,
+        $laudo_servico,
+        $desconto,
+        $forma_pagamento,
+        $tecnico_id
+    );
+
+    $stmt->execute();
+    $ordem_servico_id = $stmt->insert_id;
+    $stmt->close();
+
+    // Inserção dos itens
+    $stmt_item = $conn->prepare("INSERT INTO tb_itens_os (ordem_servico_id, descricao, tipo, preco, quantidade, total) VALUES (?, ?, ?, ?, ?, ?)");
+
+    for ($i = 0; $i < count($descricao); $i++) {
+        $desc = $descricao[$i];
+        $tip = $tipo[$i];
+        $prec = floatval($preco[$i]);
+        $qtd = intval($quantidade[$i]);
+        $tot = $prec * $qtd;
+
+        $stmt_item->bind_param("issdid", $ordem_servico_id, $desc, $tip, $prec, $qtd, $tot);
+        $stmt_item->execute();
+    }
+
+    $stmt_item->close();
+    $conn->commit();
+
+    header("Location: visualizar_ordem.php?id=" . $ordem_servico_id);
+    exit;
+
+} catch (Exception $e) {
+    $conn->rollback();
+    echo "Erro ao salvar a ordem de serviço: " . $e->getMessage();
+}
 ?>
