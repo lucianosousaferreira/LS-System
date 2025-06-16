@@ -116,7 +116,7 @@ $resultado = $stmt->get_result();
                 <td><?= htmlspecialchars($row['marca']) ?></td>
                 <td>
                   <?php if (!empty($row['imagem'])): ?>
-                    <img src="imagens/<?= htmlspecialchars($row['imagem']) ?>" style="max-width: 30px;">
+                    <img src="<?= htmlspecialchars($row['imagem']) ?>" style="max-width: 30px;">
                   <?php else: ?>
                     <span class="text-muted">---</span>
                   <?php endif; ?>
