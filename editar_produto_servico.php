@@ -46,7 +46,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         if (in_array($extensao, $permitidas)) {
             $novo_nome = uniqid("produto_", true) . "." . $extensao;
-            $caminho = "https://res.cloudinary.com/duzn9flso/image/upload/v1750039066/produtos/" . $novo_nome;
+            $caminho = "imagens/" . $novo_nome;
 
             if (move_uploaded_file($_FILES["imagem"]["tmp_name"], $caminho)) {
                 $imagem_nome = $novo_nome;
