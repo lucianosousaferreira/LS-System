@@ -57,16 +57,19 @@ $stmt->close();
 
 // Insere os itens da OS
 $stmt_item = $conn->prepare("INSERT INTO tb_itens_os (ordem_servico_id, descricao, tipo, preco, quantidade) VALUES (?, ?, ?, ?, ?)");
-$stmt_item->bind_param("issdi", $ordem_servico_id, $descricao, $tipo, $preco, $quantidade);
+
+if (!$stmt_item) {
+    die("Erro ao preparar a inserção dos itens: " . $conn->error);
+}
 
 foreach ($itens as $item) {
     $descricao = $item['descricao'];
     $tipo = $item['tipo'];
     $preco = floatval($item['preco']);
     $quantidade = intval($item['quantidade']);
-    $total_item = $preco * $quantidade;
 
-    $stmt_item->bind_param("issdii", $id_os, $descricao, $tipo, $preco, $quantidade, $total_item);
+    $stmt_item->bind_param("issdi", $id_os, $descricao, $tipo, $preco, $quantidade);
+
     if (!$stmt_item->execute()) {
         die("Erro ao salvar item: " . $stmt_item->error);
     }
@@ -74,7 +77,7 @@ foreach ($itens as $item) {
 
 $stmt_item->close();
 
-// Redireciona ou exibe mensagem
+// Redireciona para a visualização da ordem de serviço
 header("Location: visualizar_ordem.php?id=$id_os");
 exit;
 ?>
