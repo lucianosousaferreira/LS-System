@@ -54,25 +54,25 @@ try {
     $conn->begin_transaction();
 
     $stmt = $conn->prepare("INSERT INTO tb_ordens_servico 
-        (numero_os, cliente_id, veiculo_id, data_abertura, total, data_entrada, data_saida, status, relato_problemas, laudo_servico, desconto, forma_pagamento, tecnico_id) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    (numero_os, cliente_id, veiculo_id, data_abertura, total, data_entrada, data_saida, status, relato_problemas, laudo_servico, desconto, forma_pagamento, tecnico_id) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-    $stmt->bind_param(
-        "sisdsdssssdsi",
-        $numero_os,
-        $cliente_id,
-        $veiculo_id,
-        $data_abertura,
-        $total_final,
-        $data_entrada,
-        $data_saida,
-        $status,
-        $relato_problemas,
-        $laudo_servico,
-        $desconto,
-        $forma_pagamento,
-        $tecnico_id
-    );
+$stmt->bind_param(
+    "iiisdsssssdsi",
+    $numero_os,
+    $cliente_id,
+    $veiculo_id,
+    $data_abertura,
+    $total_final,
+    $data_entrada,
+    $data_saida,
+    $status,
+    $relato_problemas,
+    $laudo_servico,
+    $desconto,
+    $forma_pagamento,
+    $tecnico_id
+);
 
     $stmt->execute();
     $ordem_servico_id = $stmt->insert_id;
