@@ -5,7 +5,7 @@ include_once 'conexao.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_os           = intval($_POST['id_os']);
     $data_entrada    = $_POST['data_entrada'];
-    $data_saida      = !empty($_POST['data_saida']) ? $_POST['data_saida'] : null; // Corrigido
+    $data_saida      = !empty($_POST['data_saida']) ? $_POST['data_saida'] : null;
     $status          = $_POST['status'];
     $forma_pagamento = $_POST['forma_pagamento'];
     $relato          = $_POST['relato_problemas'];
@@ -35,22 +35,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $stmt->close();
 
-    // Remove itens antigos (usando prepare para evitar SQL injection)
+    // Remove itens antigos
     $stmt_del = $conn->prepare("DELETE FROM tb_itens_os WHERE ordem_servico_id = ?");
     $stmt_del->bind_param("i", $id_os);
     $stmt_del->execute();
     $stmt_del->close();
 
-    // Adiciona os novos itens
+    // Adiciona os novos itens (sem campo 'total')
     $descricao  = $_POST['descricao'] ?? [];
     $tipo       = $_POST['tipo'] ?? [];
     $preco      = $_POST['preco'] ?? [];
     $quantidade = $_POST['quantidade'] ?? [];
 
     $total_geral = 0;
-    $stmt_item = $conn->prepare("INSERT INTO tb_itens_os (ordem_servico_id, descricao, tipo, preco, quantidade, total) 
-                                 VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt_item->bind_param("issdii", $id_os, $desc, $tp, $prc, $qtd, $total);
+    $stmt_item = $conn->prepare("INSERT INTO tb_itens_os (ordem_servico_id, descricao, tipo, preco, quantidade) 
+                                 VALUES (?, ?, ?, ?, ?)");
+    $stmt_item->bind_param("issdi", $id_os, $desc, $tp, $prc, $qtd);
 
     for ($i = 0; $i < count($descricao); $i++) {
         $desc  = $descricao[$i];
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $stmt_item->close();
 
-    // Aplica o desconto
+    // Aplica o desconto no total
     $total_com_desconto = $total_geral - ($total_geral * ($desconto / 100));
 
     // Atualiza o total da OS
