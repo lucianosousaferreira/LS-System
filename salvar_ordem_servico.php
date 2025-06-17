@@ -12,8 +12,8 @@ function limpar($valor) {
 $numero_os = $_POST['numero_os'] ?? '';
 $cliente_id = $_POST['cliente_id'] ?? '';
 $veiculo_id = $_POST['veiculo_id'] ?? '';
-$data_entrada = $_POST['data_entrada'] ?? '';
-$data_saida = $_POST['data_saida'] ?? '';
+$data_entrada = !empty($_POST['data_entrada']) ? $_POST['data_entrada'] : null;
+$data_saida = !empty($_POST['data_saida']) ? $_POST['data_saida'] : null;
 $status = $_POST['status'] ?? '';
 $tecnico_id = $_POST['tecnico_id'] ?? '';
 $forma_pagamento = $_POST['forma_pagamento'] ?? '';
@@ -41,7 +41,13 @@ $data_abertura = date('Y-m-d H:i:s');
 $sql_os = "INSERT INTO tb_ordens_servico (numero_os, cliente_id, veiculo_id, data_abertura, data_entrada, data_saida, status, tecnico_id, forma_pagamento, relato_problemas, laudo_servico, desconto, total)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 $stmt_os = $conn->prepare($sql_os);
-$stmt_os->bind_param("siissssisssdd", $numero_os, $cliente_id, $veiculo_id, $data_abertura, $data_entrada, $data_saida, $status, $tecnico_id, $forma_pagamento, $relato, $laudo, $desconto, $total);
+
+// Ajusta nulls corretamente
+if ($data_saida === null) {
+    $stmt_os->bind_param("siissssisssdd", $numero_os, $cliente_id, $veiculo_id, $data_abertura, $data_entrada, $null = NULL, $status, $tecnico_id, $forma_pagamento, $relato, $laudo, $desconto, $total);
+} else {
+    $stmt_os->bind_param("siissssisssdd", $numero_os, $cliente_id, $veiculo_id, $data_abertura, $data_entrada, $data_saida, $status, $tecnico_id, $forma_pagamento, $relato, $laudo, $desconto, $total);
+}
 
 if ($stmt_os->execute()) {
     $ordem_servico_id = $stmt_os->insert_id;
