@@ -56,7 +56,9 @@ $id_os = $stmt->insert_id;
 $stmt->close();
 
 // Insere os itens da OS
-$stmt_item = $conn->prepare("INSERT INTO tb_itens_os (ordem_servico_id, descricao, tipo, preco, quantidade, total) VALUES (?, ?, ?, ?, ?, ?)");
+$stmt_item = $conn->prepare("INSERT INTO tb_itens_os (ordem_servico_id, descricao, tipo, preco, quantidade) VALUES (?, ?, ?, ?, ?)");
+$stmt_item->bind_param("isssd", $ordem_servico_id, $descricao, $tipo, $preco, $quantidade);
+
 
 foreach ($itens as $item) {
     $descricao = $item['descricao'];
