@@ -3,9 +3,9 @@ include_once 'verifica_login.php';
 include_once 'conexao.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id_os           = $_POST['id_os'];
+    $id_os           = intval($_POST['id_os']);
     $data_entrada    = $_POST['data_entrada'];
-    $data_saida      = $_POST['data_saida'];
+    $data_saida      = !empty($_POST['data_saida']) ? $_POST['data_saida'] : null; // Corrigido
     $status          = $_POST['status'];
     $forma_pagamento = $_POST['forma_pagamento'];
     $relato          = $_POST['relato_problemas'];
@@ -30,10 +30,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $tecnico_id,
         $id_os
     );
-    $stmt->execute();
+    if (!$stmt->execute()) {
+        die("Erro ao atualizar OS: " . $stmt->error);
+    }
+    $stmt->close();
 
-    // Remove itens antigos
-    $conn->query("DELETE FROM tb_itens_os WHERE ordem_servico_id = $id_os");
+    // Remove itens antigos (usando prepare para evitar SQL injection)
+    $stmt_del = $conn->prepare("DELETE FROM tb_itens_os WHERE ordem_servico_id = ?");
+    $stmt_del->bind_param("i", $id_os);
+    $stmt_del->execute();
+    $stmt_del->close();
 
     // Adiciona os novos itens
     $descricao  = $_POST['descricao'] ?? [];
@@ -42,6 +48,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $quantidade = $_POST['quantidade'] ?? [];
 
     $total_geral = 0;
+    $stmt_item = $conn->prepare("INSERT INTO tb_itens_os (ordem_servico_id, descricao, tipo, preco, quantidade, total) 
+                                 VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt_item->bind_param("issdii", $id_os, $desc, $tp, $prc, $qtd, $total);
+
     for ($i = 0; $i < count($descricao); $i++) {
         $desc  = $descricao[$i];
         $tp    = $tipo[$i];
@@ -50,20 +60,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $total = $prc * $qtd;
         $total_geral += $total;
 
-        $stmt = $conn->prepare("INSERT INTO tb_itens_os (ordem_servico_id, descricao, tipo, preco, quantidade, total) 
-                                VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("isssii", $id_os, $desc, $tp, $prc, $qtd, $total);
-        $stmt->execute();
+        if (!$stmt_item->execute()) {
+            die("Erro ao inserir item: " . $stmt_item->error);
+        }
     }
+    $stmt_item->close();
 
     // Aplica o desconto
     $total_com_desconto = $total_geral - ($total_geral * ($desconto / 100));
 
-    // Atualiza o total na OS
-    $stmt = $conn->prepare("UPDATE tb_ordens_servico SET total = ? WHERE id = ?");
-    $stmt->bind_param("di", $total_com_desconto, $id_os);
-    $stmt->execute();
+    // Atualiza o total da OS
+    $stmt_total = $conn->prepare("UPDATE tb_ordens_servico SET total = ? WHERE id = ?");
+    $stmt_total->bind_param("di", $total_com_desconto, $id_os);
+    $stmt_total->execute();
+    $stmt_total->close();
 
+    // Redireciona com sucesso
     header("Location: visualizar_ordem.php?id=$id_os&msg=OS atualizada com sucesso");
     exit;
 } else {
