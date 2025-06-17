@@ -1,104 +1,81 @@
 <?php
-include_once 'verifica_login.php';
-include_once 'conexao.php';
+include_once('conexao.php');
 
-mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-date_default_timezone_set('America/Sao_Paulo');
-
-$numero_os = $_POST['numero_os'] ?? '';
-$cliente_id = intval($_POST['cliente_id'] ?? 0);
-$veiculo_id = intval($_POST['veiculo_id'] ?? 0);
-$data_abertura = date('Y-m-d H:i:s');
-
-$data_entrada = $_POST['data_entrada'] ?? '';
-$data_saida = $_POST['data_saida'] ?? null;
-
-$status = $_POST['status'] ?? '';
-$relato_problemas = $_POST['relato_problemas'] ?? '';
-$laudo_servico = $_POST['laudo_servico'] ?? '';
-$desconto = floatval($_POST['desconto'] ?? 0);
-$forma_pagamento = $_POST['forma_pagamento'] ?? '';
-$tecnico_id = $_POST['tecnico_id'] ?? null;
-
-// Validação da data
 function validarData($data) {
     $d = DateTime::createFromFormat('Y-m-d', $data);
     return $d && $d->format('Y-m-d') === $data;
 }
 
-if (!validarData($data_entrada)) {
-    die("Erro: data_entrada inválida.");
-}
-if (!empty($data_saida) && !validarData($data_saida)) {
-    $data_saida = null;
-}
-
-$descricao = $_POST['descricao'] ?? [];
-$tipo = $_POST['tipo'] ?? [];
-$preco = $_POST['preco'] ?? [];
-$quantidade = $_POST['quantidade'] ?? [];
-
-if (empty($descricao) || count($descricao) !== count($tipo) || count($descricao) !== count($preco) || count($descricao) !== count($quantidade)) {
-    die("Erro: Nenhum item adicionado ou dados inconsistentes.");
-}
-
-$total = 0;
-for ($i = 0; $i < count($descricao); $i++) {
-    $total += floatval($preco[$i]) * intval($quantidade[$i]);
-}
-$total_final = $total - ($total * ($desconto / 100));
-
-$tecnico_id = empty($tecnico_id) ? null : intval($tecnico_id);
-
 try {
-    $conn->begin_transaction();
+    // Recebendo os dados do POST
+    $cliente_id = $_POST['cliente_id'];
+    $veiculo_id = $_POST['veiculo_id'];
+    $data_entrada = date('Y-m-d', strtotime($_POST['data_entrada'] ?? ''));
+    $data_saida = !empty($_POST['data_saida']) ? date('Y-m-d', strtotime($_POST['data_saida'])) : null;
+    $status = $_POST['status'];
+    $relato = $_POST['relato'];
+    $laudo = $_POST['laudo'];
+    $desconto = $_POST['desconto'] ?? 0;
+    $forma_pagamento = $_POST['forma_pagamento'];
+    $tecnico_id = $_POST['tecnico_id'];
+    $total = $_POST['total'];
 
-    $stmt = $conn->prepare("INSERT INTO tb_ordens_servico 
-    (numero_os, cliente_id, veiculo_id, data_abertura, total, data_entrada, data_saida, status, relato_problemas, laudo_servico, desconto, forma_pagamento, tecnico_id) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    // Itens da OS
+    $itens = json_decode($_POST['itens'], true);
 
-$stmt->bind_param(
-    "iiisdsssssdsi",
-    $numero_os,
-    $cliente_id,
-    $veiculo_id,
-    $data_abertura,
-    $total_final,
-    $data_entrada,
-    $data_saida,
-    $status,
-    $relato_problemas,
-    $laudo_servico,
-    $desconto,
-    $forma_pagamento,
-    $tecnico_id
-);
+    if (!$cliente_id || !$veiculo_id || !$data_entrada || !$status || !$forma_pagamento || !$tecnico_id || !is_array($itens)) {
+        throw new Exception("Dados obrigatórios ausentes.");
+    }
 
+    if (!validarData($data_entrada)) {
+        throw new Exception("Data de entrada inválida.");
+    }
+
+    if ($data_saida && !validarData($data_saida)) {
+        throw new Exception("Data de saída inválida.");
+    }
+
+    // Gerar número único para a OS
+    $numero_os = 'OS-' . time();
+
+    // Inserir na tabela principal da OS
+    $sql = "INSERT INTO tb_ordens_servico (numero_os, cliente_id, veiculo_id, data_abertura, data_entrada, data_saida, status, relato_problemas, laudo_servico, desconto, forma_pagamento, tecnico_id, total)
+            VALUES (?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("siisssssdsid", $numero_os, $cliente_id, $veiculo_id, $data_entrada, $data_saida, $status, $relato, $laudo, $desconto, $forma_pagamento, $tecnico_id, $total);
     $stmt->execute();
+
+    if ($stmt->affected_rows === 0) {
+        throw new Exception("Erro ao salvar a ordem de serviço.");
+    }
+
+    // ID da nova OS
     $ordem_servico_id = $stmt->insert_id;
     $stmt->close();
 
-    $stmt_item = $conn->prepare("INSERT INTO tb_itens_os (ordem_servico_id, descricao, tipo, preco, quantidade, total) VALUES (?, ?, ?, ?, ?, ?)");
+    // Inserir os itens da OS
+    $sql_item = "INSERT INTO tb_itens_os (ordem_servico_id, descricao, tipo, preco, quantidade, total)
+                 VALUES (?, ?, ?, ?, ?, ?)";
+    $stmt_item = $conn->prepare($sql_item);
 
-    for ($i = 0; $i < count($descricao); $i++) {
-        $desc = $descricao[$i];
-        $tip = $tipo[$i];
-        $prec = floatval($preco[$i]);
-        $qtd = intval($quantidade[$i]);
-        $tot = $prec * $qtd;
+    foreach ($itens as $item) {
+        $descricao = $item['descricao'];
+        $tipo = $item['tipo'];
+        $preco = $item['preco'];
+        $quantidade = $item['quantidade'];
+        $total_item = $item['total'];
 
-        $stmt_item->bind_param("issdid", $ordem_servico_id, $desc, $tip, $prec, $qtd, $tot);
+        $stmt_item->bind_param("issdii", $ordem_servico_id, $descricao, $tipo, $preco, $quantidade, $total_item);
         $stmt_item->execute();
     }
 
     $stmt_item->close();
-    $conn->commit();
+    $conn->close();
 
-    header("Location: visualizar_ordem.php?id=" . $ordem_servico_id);
-    exit;
+    echo json_encode(["status" => "sucesso", "mensagem" => "Ordem de serviço salva com sucesso!", "ordem_servico_id" => $ordem_servico_id]);
 
 } catch (Exception $e) {
-    $conn->rollback();
-    echo "Erro ao salvar a ordem de serviço: " . $e->getMessage();
+    echo json_encode(["status" => "erro", "mensagem" => "Erro ao salvar a ordem de serviço: " . $e->getMessage()]);
 }
 ?>
