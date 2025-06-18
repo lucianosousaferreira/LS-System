@@ -94,7 +94,7 @@ include_once 'verifica_login.php';
   <!-- Topbar com logo e botão de logout -->
   <div class="topbar shadow-sm">
     <div class="logo-area">
-      <img src="imagens/logo.png" alt="Logo" class="logo" />
+      <img src="https://res.cloudinary.com/duzn9flso/image/upload/v1750261430/logo_onws3p.webp" alt="Logo" class="logo" />
       <span class="fw-bold text-primary"></span>
     </div>
     <a href="logout.php" class="logout-btn d-flex align-items-center">
