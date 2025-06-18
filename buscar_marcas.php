@@ -1,14 +1,24 @@
 <?php
 include_once 'conexao.php';
-$termo = $_GET['term'] ?? '';
-$sql = "SELECT nome FROM tb_marca WHERE nome LIKE ? LIMIT 10";
-$stmt = $conn->prepare($sql);
-$like = "%$termo%";
-$stmt->bind_param("s", $like);
-$stmt->execute();
-$result = $stmt->get_result();
-$dados = [];
-while ($row = $result->fetch_assoc()) {
-    $dados[] = $row['nome'];
+
+$query = $_GET['query'] ?? '';
+
+$resultado = [];
+if (!empty($query)) {
+    $sql = "SELECT id, nome FROM tb_marca WHERE nome LIKE ? LIMIT 10";
+    $stmt = $conn->prepare($sql);
+    $busca = '%' . $query . '%';
+    $stmt->bind_param("s", $busca);
+    $stmt->execute();
+    $res = $stmt->get_result();
+
+    while ($row = $res->fetch_assoc()) {
+        $resultado[] = ['id' => $row['id'], 'nome' => $row['nome']];
+    }
+
+    $stmt->close();
 }
-echo json_encode($dados);
+$conn->close();
+
+header('Content-Type: application/json');
+echo json_encode($resultado);
