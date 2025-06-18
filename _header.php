@@ -1,7 +1,7 @@
-<!DOCTYPE html>
 <?php 
 include_once 'verifica_login.php';
 ?>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
