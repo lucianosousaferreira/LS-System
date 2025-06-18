@@ -67,9 +67,9 @@ $conn->close();
       <input type="text" class="form-control form-control-sm" id="placa" name="placa" maxlength="10" required>
     </div>
 
-    <div class="mb-2">
+    <div class="mb-2 position-relative">
       <label for="marca" class="form-label small">Marca</label>
-      <input type="text" class="form-control form-control-sm" id="marca" name="marca" required>
+      <input type="text" class="form-control form-control-sm" id="marca" name="marca" autocomplete="off" required>
     </div>
 
     <div class="mb-2">
@@ -93,57 +93,66 @@ $conn->close();
   </form>
 </div>
 
-<!-- Script do autocomplete -->
+<!-- Scripts de Autocomplete -->
 <script>
-document.getElementById('cliente_nome').addEventListener('input', function () {
-  const query = this.value;
-  const clienteIdInput = document.getElementById('cliente_id');
-  clienteIdInput.value = ''; // Limpa o ID ao digitar novamente
+function autocompleteInput(inputId, url, valueKey, hiddenId = null) {
+  const input = document.getElementById(inputId);
 
-  if (query.length >= 2) {
-    fetch('buscar_clientes.php?query=' + encodeURIComponent(query))
-      .then(response => response.json())
-      .then(data => {
-        let list = document.createElement('ul');
-        list.classList.add('list-group', 'position-absolute', 'w-100');
-        list.style.zIndex = 9999;
+  input.addEventListener('input', function () {
+    const query = this.value;
+    const parent = this.parentNode;
+    const existingList = parent.querySelector('ul.list-group');
+    if (existingList) existingList.remove();
 
-        if (data.length === 0) {
-          let item = document.createElement('li');
-          item.classList.add('list-group-item', 'text-danger', 'small');
-          item.textContent = 'Cliente não cadastrado';
-          list.appendChild(item);
-        } else {
-          data.forEach(cliente => {
+    if (query.length >= 2) {
+      fetch(url + '?query=' + encodeURIComponent(query))
+        .then(res => res.json())
+        .then(data => {
+          let list = document.createElement('ul');
+          list.classList.add('list-group', 'position-absolute', 'w-100');
+          list.style.zIndex = 9999;
+
+          if (data.length === 0) {
             let item = document.createElement('li');
-            item.classList.add('list-group-item', 'small');
-            item.textContent = cliente.nome;
-            item.setAttribute('data-id', cliente.id);
-
-            item.addEventListener('click', function () {
-              document.getElementById('cliente_nome').value = cliente.nome;
-              clienteIdInput.value = cliente.id;
-              list.remove();
-            });
-
+            item.classList.add('list-group-item', 'text-danger', 'small');
+            item.textContent = 'Nenhum resultado encontrado';
             list.appendChild(item);
-          });
-        }
+          } else {
+            data.forEach(obj => {
+              let item = document.createElement('li');
+              item.classList.add('list-group-item', 'small');
+              item.textContent = obj[valueKey];
 
-        let currentList = document.querySelector('.list-group');
-        if (currentList) currentList.remove();
+              item.addEventListener('click', function () {
+                input.value = obj[valueKey];
+                if (hiddenId && obj['id']) {
+                  document.getElementById(hiddenId).value = obj['id'];
+                }
+                list.remove();
+              });
 
-        document.getElementById('cliente_nome').parentNode.appendChild(list);
-      });
-  }
-});
+              list.appendChild(item);
+            });
+          }
 
-document.addEventListener('click', function (event) {
-  if (!event.target.closest('#cliente_nome')) {
-    let list = document.querySelector('.list-group');
-    if (list) list.remove();
-  }
-});
+          parent.appendChild(list);
+        });
+    }
+  });
+
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest('#' + inputId)) {
+      const list = document.querySelector('#' + inputId + ' + ul.list-group');
+      if (list) list.remove();
+    }
+  });
+}
+
+// Cliente (com ID oculto)
+autocompleteInput('cliente_nome', 'buscar_clientes.php', 'nome', 'cliente_id');
+
+// Marca (sem ID oculto)
+autocompleteInput('marca', 'buscar_marcas.php', 'nome');
 
 document.querySelector('form').addEventListener('submit', function (e) {
   const clienteId = document.getElementById('cliente_id').value;
