@@ -56,11 +56,11 @@ $resultado = $conn->query($sql);
           <?php while ($row = $resultado->fetch_assoc()): ?>
             <tr>
               <td><?= $row['id'] ?></td>
-              <td><?= htmlspecialchars($row['nome']) ?></td>
-              <td><?= htmlspecialchars($row['cpf_cnpj']) ?></td>
-              <td><?= htmlspecialchars($row['contato']) ?></td>
-              <td><?= htmlspecialchars($row['endereco']) ?></td>
-              <td><?= htmlspecialchars($row['email']) ?></td>
+              <td><?= htmlspecialchars($row['nome'] ?? '') ?></td>
+              <td><?= htmlspecialchars($row['cpf_cnpj'] ?? '') ?></td>
+              <td><?= htmlspecialchars($row['contato'] ?? '') ?></td>
+              <td><?= htmlspecialchars($row['endereco'] ?? '') ?></td>
+              <td><?= htmlspecialchars($row['email'] ?? '') ?></td>
               <td>
                 <a href="editar_cliente.php?id=<?= $row['id'] ?>" class="btn btn-sm btn-warning" title="Editar">
                   <i class="bi bi-pencil-square"></i>
