@@ -47,7 +47,6 @@ $resultado = $conn->query($sql);
           <th>CPF/CNPJ</th>
           <th>Contato</th>
           <th>Endereço</th>
-          <th>Email</th>
           <th>Ações</th>
         </tr>
       </thead>
@@ -60,7 +59,6 @@ $resultado = $conn->query($sql);
               <td><?= htmlspecialchars($row['cpf_cnpj'] ?? '') ?></td>
               <td><?= htmlspecialchars($row['contato'] ?? '') ?></td>
               <td><?= htmlspecialchars($row['endereco'] ?? '') ?></td>
-              <td><?= htmlspecialchars($row['email'] ?? '') ?></td>
               <td>
                 <a href="editar_cliente.php?id=<?= $row['id'] ?>" class="btn btn-sm btn-warning" title="Editar">
                   <i class="bi bi-pencil-square"></i>
