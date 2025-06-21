@@ -1,4 +1,3 @@
-
 <?php
 include_once 'verifica_login.php';
 include_once 'conexao.php';
