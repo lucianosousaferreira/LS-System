@@ -1,7 +1,6 @@
 
 <?php
 include_once 'verifica_login.php';
-// Conexão com o banco
 include_once 'conexao.php';
 $titulo_pagina = "Editar Cliente";
 
